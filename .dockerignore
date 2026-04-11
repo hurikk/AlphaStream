@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+
+# Ambiente virtual
+venv/
+.env/
+
+# Dados grandes
+data/
+*.csv
+*.parquet
+
+# Logs
+*.log
+
+# VS Code
+.vscode/

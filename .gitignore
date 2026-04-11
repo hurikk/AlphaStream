@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual env
+venv/
+
+# Jupyter
+tests/
+
+# VS Code
+.vscode/
+
+# Data
+data/
+*.csv
+*.parquet
+
+# Logs
+*.log
+
+# System
+.DS_Store
+Thumbs.db
