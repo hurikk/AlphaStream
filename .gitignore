@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 
 # Virtual env
+.env
 venv/
 
 # Jupyter
