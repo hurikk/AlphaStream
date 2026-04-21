@@ -20,3 +20,6 @@ Brief description of what the system does and its responsibilities
 
 ## Data Flow
 API → ingestion ↔ pre-processing → database (for now)
+
+## Diagram
+![Architecture](assets/architecture.png)
