@@ -1,7 +1,7 @@
 # Architecture
 
 ### Overview
-Brief description of what the system does and its responsibilities
+A data pipeline designed to provide processed financial data related to B3 (Ibovespa) for analysis and forecasting
 
 ## Stack
 - Python 3.12
