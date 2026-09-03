@@ -1,4 +1,4 @@
-import polars as pl
+import pandas as pd
 import datetime
 import io
 from pathlib import Path
@@ -111,7 +111,7 @@ class PostgresQuery:
         return start_date
     
     
-    def insert_data(self, actions_data_df: pl.DataFrame, schema_name: str, table_name: str) -> None:
+    def insert_data(self, actions_data_df: pd.DataFrame, schema_name: str, table_name: str) -> None:
         """
         
         Inserts data into the specified table of the specified schema
@@ -131,3 +131,48 @@ class PostgresQuery:
         self.conn.commit()
         cursor.close()
         
+        
+    def get_last_ingested_date(self, schema_name: str, table_name: str, ticker: str) -> datetime.date | None:
+        """
+
+        Retrieves the most recent reference_date already ingested for a given ticker
+
+        Args:
+            schema_name: the schema name to make the query
+            table_name: the table name to make the query
+            ticker: the ticker to filter the query
+            
+        Returns:
+            The most recent reference_date for the ticker, or None if there's no record yet
+
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            f"SELECT MAX(reference_date) FROM {schema_name}.{table_name} WHERE ticker = %s",
+            (ticker,)
+        )
+        result = cursor.fetchone()
+        cursor.close()
+        return result[0] if result else None
+
+
+    def insert_raw_records(self, raw_df: pd.DataFrame, schema_name: str, table_name: str) -> None:
+        """
+
+        Inserts raw landing records into the specified table, following the same
+        COPY-based approach used for other layers
+
+        Args:
+            raw_df: the polars dataframe with columns [ticker, reference_date, ingested_at, payload]
+            schema_name: the schema name to specify where to insert the data
+            table_name: the table name to specify where to insert the data
+
+        """
+        buffer_mem = io.StringIO()
+        raw_df.to_csv(buffer_mem, index=False)
+        buffer_mem.seek(0)
+
+        cursor = self.conn.cursor()
+        cursor.copy_expert(f"COPY {schema_name}.{table_name} FROM STDIN WITH CSV HEADER", buffer_mem)
+        self.conn.commit()
+        cursor.close()

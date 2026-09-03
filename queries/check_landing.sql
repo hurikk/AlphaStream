@@ -1,0 +1,1 @@
+SELECT * FROM landing.main_landing LIMIT 100;

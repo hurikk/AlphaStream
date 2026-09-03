@@ -56,14 +56,11 @@ class PostgresMigration():
         
         cursor = self.conn.cursor()
         cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {schema_name}.{table_name}(
-                Date VARCHAR,
-                Close FLOAT,
-                High FLOAT,
-                Low FLOAT,
-                Open FLOAT,
-                Volume FLOAT,
-                Ticker VARCHAR
+            CREATE TABLE IF NOT EXISTS {schema_name}.{table_name} (
+                ticker VARCHAR NOT NULL,
+                reference_date DATE NOT NULL,
+                ingested_at TIMESTAMP NOT NULL,
+                payload JSONB NOT NULL
             )"""
         )
         self.conn.commit()
