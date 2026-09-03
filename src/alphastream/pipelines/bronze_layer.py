@@ -1,12 +1,30 @@
-import polars as pl
-import yfinance as yf
+import logging
+import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
 
 from src.alphastream.utils.utils import get_tickers
+from src.alphastream.transformations.bronze import expand_payload_df
 from src.alphastream.database.postgres_setup import PostgresSetup
 from src.alphastream.migrations.postgres_migrations import PostgresMigration
 from src.alphastream.queries.postgres_queries import PostgresQuery
+
+logger = logging.getLogger(__name__)
+
+
+def _parse_landing_infos(ticker: str, 
+                         query: PostgresQuery,
+                         last_date,
+                         schema_name: str = "landing", 
+                         table_name: str = "main_landing"):
+    
+    landing_df = query.get_records(schema_name, table_name, ticker, last_date)
+    
+    if landing_df.empty:
+        return pd.DataFrame()
+
+    return expand_payload_df(landing_df)
+
 
 def insert_into_bronze_layer(db_name: str, schema_name: str, table_name: str) -> None:
     """
@@ -16,68 +34,40 @@ def insert_into_bronze_layer(db_name: str, schema_name: str, table_name: str) ->
     """
     
     env_path = Path(".env")
+    tickers = [f"{ticker}.SA" for ticker in get_tickers()]
     
-    tickers = get_tickers()
-    tickers = [ticker + ".SA" for ticker in tickers]
-    
-    db_initialization = PostgresSetup(env_path, db_name)
-    db_initialization.init_db(db_name)    
-    
+    PostgresSetup(env_path, db_name).init_db(db_name)
     query = PostgresQuery(env_path, db_name)
-    actions_data_df = pl.DataFrame()
     
     if not query.table_exists_or_no(schema_name, table_name):
-        
-        migration = PostgresMigration(env_path, db_name)
-        migration.create_table(schema_name, table_name)
-        
-        for ticker in tickers:
-            action_data = yf.download(ticker, period="20y")
-            action_data = action_data.reset_index()
-            action_data = pl.from_pandas(action_data)
-            action_data = action_data.with_columns(
-                pl.lit(ticker).alias("ticker")
-            ).rename({"('Date', '')": "Date",
-                      f"('Close', '{ticker}')": "Close",
-                      f"('High', '{ticker}')": "High",
-                      f"('Low', '{ticker}')": "Low",
-                      f"('Open', '{ticker}')": "Open", 
-                      f"('Volume', '{ticker}')": "Volume"})
-            action_data = action_data.with_columns(
-                pl.col("Date").dt.strftime("%Y-%m-%d")
-            )
-            if not action_data.is_empty():
-                if actions_data_df.is_empty():
-                    actions_data_df = action_data
-                else:
-                    actions_data_df = pl.concat([actions_data_df, action_data])
-        query.insert_data(actions_data_df, schema_name, table_name)
-        
-    else:
-        actions_data_df_temp = pl.DataFrame()
-        start_date = (query.get_most_recent_day(schema_name, table_name) + timedelta(days=1)).strftime("%Y-%m-%d")
-        end_date = (datetime.today()).strftime("%Y-%m-%d")
-        for ticker in tickers:
+        logger.info("Tabela Bronze não existe. Criando estrutura.")
+        PostgresMigration(env_path, db_name).create_table(schema_name, table_name)
+    
+    all_records = []
+    
+    for ticker in tickers:
+        try:
+            last_date = query.get_last_ingested_date(schema_name, table_name, ticker)
             
-            df_with_new_records = yf.download(ticker, start=start_date, end=end_date)
-            df_with_new_records = df_with_new_records.reset_index()
-            df_with_new_records = pl.from_pandas(df_with_new_records)
-            df_with_new_records = df_with_new_records.with_columns(
-                pl.lit(ticker).alias("ticker")
-            ).rename({"('Date', '')": "Date",
-                        f"('Close', '{ticker}')": "Close",
-                        f"('High', '{ticker}')": "High",
-                        f"('Low', '{ticker}')": "Low",
-                        f"('Open', '{ticker}')": "Open", 
-                        f"('Volume', '{ticker}')": "Volume"})
-            df_with_new_records = df_with_new_records.with_columns(
-                pl.col("Date").dt.strftime("%Y-%m-%d")
-            )
-            if not df_with_new_records.is_empty():
-                if actions_data_df_temp.is_empty():
-                    actions_data_df_temp = df_with_new_records
-                else:
-                    actions_data_df_temp = pl.concat([actions_data_df_temp, df_with_new_records])
+            (logger.info(f"Sem histórico para {ticker}. Transformando todos os dados da Landing.") if last_date is None
+             else logger.info(f"Histórico encontrado para {ticker} até {last_date}. Buscando dados novos."))
                 
-        actions_data_df = pl.concat([actions_data_df, actions_data_df_temp])
-        query.insert_data(actions_data_df, schema_name, table_name)
+            ticker_bronze_df = _parse_landing_infos(ticker, query, last_date)  
+            
+            if ticker_bronze_df.empty:
+                logger.info(f"Nenhum dado novo para {ticker}. Pulando.")
+                continue     
+            
+            all_records.append(ticker_bronze_df)
+        
+        except Exception:
+            logger.exception(f"Erro ao processar {ticker} na Bronze Layer.")
+        
+    if not all_records:
+        logger.info("Nenhum novo registro para inserir na Bronze Layer.")
+        return
+    
+    bronze_df = pd.concat(all_records, ignore_index=True)
+    
+    query.insert_data(bronze_df, schema_name, table_name)
+    logger.info(f"Total de registros preparados para Bronze: {len(bronze_df)}")
