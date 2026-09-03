@@ -98,5 +98,5 @@ def insert_into_landing_layer(db_name: str, schema_name: str, table_name: str) -
     
     all_records = pd.DataFrame(all_records)
 
-    query.insert_raw_records(all_records, schema_name, table_name)
+    query.insert_data(all_records, schema_name, table_name)
     logger.info(f"Inseridos {len(all_records)} registros brutos em {schema_name}.{table_name}.", len(all_records), schema_name, table_name)
