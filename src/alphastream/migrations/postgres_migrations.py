@@ -3,6 +3,26 @@ from pathlib import Path
 from src.alphastream.queries.postgres_queries import PostgresQuery
 from src.alphastream.database.helpers import start_conn
 
+def get_table_schema(schema_name: str) -> str:
+    schemas_dict = {
+        "landing": """ticker VARCHAR NOT NULL,
+                      reference_date DATE NOT NULL,
+                      ingested_at TIMESTAMP NOT NULL,
+                      payload JSONB NOT NULL""",
+                      
+        "bronze": """low NUMERIC,
+                     high NUMERIC,
+                     open NUMERIC,
+                     close NUMERIC,
+                     volume BIGINT,
+                     ticker VARCHAR NOT NULL,
+                     reference_date DATE NOT NULL,
+                     ingested_at TIMESTAMP NOT NULL"""
+    }
+    
+    return schemas_dict.get(schema_name)
+
+      
 class PostgresMigration():
     """
 
@@ -55,14 +75,6 @@ class PostgresMigration():
             self.create_schema(schema_name)
         
         cursor = self.conn.cursor()
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {schema_name}.{table_name} (
-                ticker VARCHAR NOT NULL,
-                reference_date DATE NOT NULL,
-                ingested_at TIMESTAMP NOT NULL,
-                payload JSONB NOT NULL
-            )"""
-        )
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {schema_name}.{table_name} ({get_table_schema(schema_name)})")
         self.conn.commit()
         cursor.close()
-        

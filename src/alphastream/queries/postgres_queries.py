@@ -123,7 +123,7 @@ class PostgresQuery:
         
         """
         buffer_mem = io.StringIO()
-        actions_data_df.write_csv(buffer_mem)
+        actions_data_df.to_csv(buffer_mem, index=False)
         buffer_mem.seek(0)
         
         cursor = self.conn.cursor()
@@ -156,23 +156,40 @@ class PostgresQuery:
         return result[0] if result else None
 
 
-    def insert_raw_records(self, raw_df: pd.DataFrame, schema_name: str, table_name: str) -> None:
+    def get_records(
+        self,
+        schema_name: str,
+        table_name: str,
+        ticker: str | None = None,
+        since: datetime.datetime | None = None,
+    ) -> pd.DataFrame:
         """
 
-        Inserts raw landing records into the specified table, following the same
-        COPY-based approach used for other layers
+        Retrieves raw landing records for the Bronze processing step
 
         Args:
-            raw_df: the polars dataframe with columns [ticker, reference_date, ingested_at, payload]
-            schema_name: the schema name to specify where to insert the data
-            table_name: the table name to specify where to insert the data
+            schema_name: the schema name to make the query
+            table_name: the table name to make the query
+            ticker: optional ticker to filter the query
+            since: optional lower bound (exclusive) on ingested_at, for incremental loads
+
+        Returns:
+            A pandas DataFrame with columns [ticker, reference_date, ingested_at, payload]
 
         """
-        buffer_mem = io.StringIO()
-        raw_df.to_csv(buffer_mem, index=False)
-        buffer_mem.seek(0)
+        query = f"SELECT ticker, reference_date, ingested_at, payload FROM {schema_name}.{table_name}"
+        conditions = []
+        params = []
 
-        cursor = self.conn.cursor()
-        cursor.copy_expert(f"COPY {schema_name}.{table_name} FROM STDIN WITH CSV HEADER", buffer_mem)
-        self.conn.commit()
-        cursor.close()
+        if ticker is not None:
+            conditions.append("ticker = %s")
+            params.append(ticker)
+
+        if since is not None:
+            conditions.append("ingested_at > %s")
+            params.append(since)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        return pd.read_sql(query, self.conn, params=params or None)
