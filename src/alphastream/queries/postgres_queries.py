@@ -5,6 +5,14 @@ from pathlib import Path
 
 from src.alphastream.database.helpers import start_conn
 
+def get_fields_based_on_layer(layer_name: str) -> str:
+    fields_dict = {
+        "landing": "ticker, reference_date, ingested_at, payload",
+        "bronze": "low, high, open, close, volume, ticker, reference_date, ingested_at"
+    }
+    return fields_dict.get(layer_name)
+
+
 class PostgresQuery:
     """
 
@@ -132,25 +140,37 @@ class PostgresQuery:
         cursor.close()
         
         
-    def get_last_ingested_date(self, schema_name: str, table_name: str, ticker: str) -> datetime.date | None:
+    def get_last_ingested_date(
+            self, 
+            schema_name: str, 
+            table_name: str, 
+            ticker: str | None = None, 
+            column: str = "reference_date"
+        ) -> datetime.date | datetime.datetime | None:
         """
 
-        Retrieves the most recent reference_date already ingested for a given ticker
+        Retrieves the most recent value of the given column, optionally
+        filtered by ticker
 
         Args:
             schema_name: the schema name to make the query
             table_name: the table name to make the query
-            ticker: the ticker to filter the query
-            
+            ticker: optional ticker to filter the query; if None, considers all tickers
+            column: the column to aggregate with MAX (e.g. reference_date, ingested_at)
+
         Returns:
-            The most recent reference_date for the ticker, or None if there's no record yet
+            The most recent value for the given column/filter, or None if there's no record yet
 
         """
+        query = f"SELECT MAX({column}) FROM {schema_name}.{table_name}"
+        params = []
+        
+        if ticker is not None:
+            query += " WHERE ticker = %s"
+            params.append(ticker)
+        
         cursor = self.conn.cursor()
-        cursor.execute(
-            f"SELECT MAX(reference_date) FROM {schema_name}.{table_name} WHERE ticker = %s",
-            (ticker,)
-        )
+        cursor.execute(query, params or None)
         result = cursor.fetchone()
         cursor.close()
         return result[0] if result else None
@@ -177,7 +197,7 @@ class PostgresQuery:
             A pandas DataFrame with columns [ticker, reference_date, ingested_at, payload]
 
         """
-        query = f"SELECT ticker, reference_date, ingested_at, payload FROM {schema_name}.{table_name}"
+        query = f"SELECT {get_fields_based_on_layer(schema_name)} FROM {schema_name}.{table_name}"
         conditions = []
         params = []
 

@@ -17,6 +17,15 @@ def get_table_schema(schema_name: str) -> str:
                      volume BIGINT,
                      ticker VARCHAR NOT NULL,
                      reference_date DATE NOT NULL,
+                     ingested_at TIMESTAMP NOT NULL""",
+                     
+        "silver": """low NUMERIC,
+                     high NUMERIC,
+                     open NUMERIC,
+                     close NUMERIC,
+                     volume BIGINT,
+                     ticker VARCHAR NOT NULL,
+                     reference_date DATE NOT NULL,
                      ingested_at TIMESTAMP NOT NULL"""
     }
     
