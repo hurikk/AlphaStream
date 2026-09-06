@@ -18,11 +18,11 @@ cd AlphaStream
 ```bash
 cp .env.example .env
 ```
-> Fill the `.env` file with your values. Ex:
-> DB_HOST=localhost
-> DB_PORT=5432
-> DB_USER=admin
-> DB_PASSWORD=123456
+> Fill the `.env` file with your values. Ex:<br>
+> DB_HOST=localhost<br>
+> DB_PORT=5432<br>
+> DB_USER=admin<br>
+> DB_PASSWORD=123456<br>
 > OBS: `DB_NAME` must be stock_database (DB_PASSWORD=stock_database)
 
 3. Upload the database
