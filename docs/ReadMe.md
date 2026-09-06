@@ -18,11 +18,16 @@ cd AlphaStream
 ```bash
 cp .env.example .env
 ```
-> Fill the `.env` file with your values
+> Fill the `.env` file with your values. Ex:
+> DB_HOST=localhost
+> DB_PORT=5432
+> DB_USER=admin
+> DB_PASSWORD=123456
+> OBS: `DB_NAME` must be stock_database (DB_PASSWORD=stock_database)
 
 3. Upload the database
 ```bash
-cd docker/
+cd .\docker\
 docker compose --env-file ../.env up -d
 cd ..
 ```
