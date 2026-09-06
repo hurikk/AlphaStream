@@ -8,7 +8,8 @@ from src.alphastream.database.helpers import start_conn
 def get_fields_based_on_layer(layer_name: str) -> str:
     fields_dict = {
         "landing": "ticker, reference_date, ingested_at, payload",
-        "bronze": "low, high, open, close, volume, ticker, reference_date, ingested_at"
+        "bronze": "low, high, open, close, volume, ticker, reference_date, ingested_at",
+        "silver": "low, high, open, close, volume, ticker, reference_date, ingested_at"
     }
     return fields_dict.get(layer_name)
 

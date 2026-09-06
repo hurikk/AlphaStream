@@ -26,7 +26,22 @@ def get_table_schema(schema_name: str) -> str:
                      volume BIGINT,
                      ticker VARCHAR NOT NULL,
                      reference_date DATE NOT NULL,
-                     ingested_at TIMESTAMP NOT NULL"""
+                     ingested_at TIMESTAMP NOT NULL""",
+                     
+        "gold": """low NUMERIC,
+                   high NUMERIC,
+                   open NUMERIC,
+                   close NUMERIC,
+                   volume BIGINT,
+                   ticker VARCHAR NOT NULL,
+                   reference_date DATE NOT NULL,
+                   ingested_at TIMESTAMP NOT NULL,
+                   return_21d NUMERIC,
+                   close_to_ma_21 NUMERIC,
+                   rsi_14 NUMERIC,
+                   volatility_21d NUMERIC,
+                   relative_volume NUMERIC"""
+        
     }
     
     return schemas_dict.get(schema_name)
