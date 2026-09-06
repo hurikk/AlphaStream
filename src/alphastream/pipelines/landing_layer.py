@@ -1,3 +1,4 @@
+import math
 import json
 import logging
 import pandas as pd
@@ -18,10 +19,20 @@ def _download_raw(ticker: str, **yf_kwargs) -> pd.DataFrame:
     Baixa os dados exatamente como o yfinance retorna, sem nenhuma
     transformação de schema, renomeação ou formatação.
     """
-    raw = yf.download(ticker, progress=False, **yf_kwargs)
+    raw = yf.download(ticker, progress=False, threads=False, **yf_kwargs)
     if raw.empty:
         return raw
     return raw.reset_index()
+
+
+def _clean_value(value):
+    """
+    Converte NaN (float) em None, para que a serialização JSON gere
+    'null' em vez do token inválido 'NaN', que o Postgres rejeita.
+    """
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    return value
 
 
 def _to_raw_records(raw_df: pd.DataFrame, ticker: str) -> list[dict]:
@@ -39,7 +50,7 @@ def _to_raw_records(raw_df: pd.DataFrame, ticker: str) -> list[dict]:
         parsed_date = pd.to_datetime(raw_date).date()
         
         raw_payload = {
-            str(key): value
+            str(key): _clean_value(value)
             for key, value in row.items()
         }
 
