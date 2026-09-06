@@ -23,7 +23,7 @@ cp .env.example .env
 > DB_PORT=5432<br>
 > DB_USER=admin<br>
 > DB_PASSWORD=123456<br>
-> OBS: `DB_NAME` must be stock_database (DB_PASSWORD=stock_database)
+> OBS: `DB_NAME` must be stock_database (DB_NAME=stock_database)
 
 3. Upload the database
 ```bash
