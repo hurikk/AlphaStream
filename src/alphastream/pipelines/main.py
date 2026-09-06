@@ -1,4 +1,4 @@
-from src.alphastream.pipelines import landing_layer, bronze_layer, silver_layer
+from src.alphastream.pipelines import landing_layer, bronze_layer, silver_layer, gold_layer
 
 def run():
     """Creates or updates the main_bronze table 
@@ -7,6 +7,7 @@ def run():
     landing_layer.insert_into_landing_layer(db_name="stock_database", schema_name="landing", table_name="main_landing")
     bronze_layer.insert_into_bronze_layer(db_name="stock_database", schema_name="bronze", table_name="main_bronze")
     silver_layer.insert_into_silver_layer(db_name="stock_database", schema_name="silver", table_name="main_silver")
+    gold_layer.insert_into_gold_layer(db_name="stock_database", schema_name="gold", table_name="main_gold")
 
 if __name__ == "__main__":
     run()
