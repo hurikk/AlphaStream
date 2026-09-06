@@ -16,6 +16,7 @@ A data pipeline designed to provide processed financial data related to B3 (Ibov
     - `migrations/` — schema definitions and table creation
     - `pipelines/` — main data flow and processing logic
     - `queries/` — database query definitions
+    - `transformations/` — data cleaning, validation, and feature engineering per layer
     - `utils/` — shared helper functions and reusable modules
 
 ## Data Flow
