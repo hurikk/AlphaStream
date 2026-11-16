@@ -18,6 +18,9 @@ data/
 *.csv
 *.parquet
 
+# Evaluation Results
+evaluation_results/
+
 # Logs
 *.log
 
